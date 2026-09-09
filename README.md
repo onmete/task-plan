@@ -11,6 +11,10 @@ It provides:
 - `Alt+T` to toggle the overlay;
 - session-persisted task-plan state.
 
+## Terminal display
+
+If the Task Plan overlay flickers in the terminal, open `/settings` and set the TUI mode to `fullscreen`.
+
 ## Install from Git
 
 This repository is private. Install it over HTTPS after authenticating to GitHub:

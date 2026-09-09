@@ -56,6 +56,18 @@ Then users can install it with:
 pi install npm:pi-task-plan@0.1.0
 ```
 
+## Optional agent instructions
+
+`INSTRUCTIONS_APPEND.md` contains the global Pi agent instructions used while developing this extension. It is provided as a reference for the person installing the package; it is not applied automatically.
+
+Review it first, then manually copy the relevant content to the desired `AGENTS.md` location. To append the complete file to the global Pi instructions:
+
+```bash
+cat INSTRUCTIONS_APPEND.md >> ~/.pi/agent/AGENTS.md
+```
+
+Do not append it if those instructions are already present, or if you want the instructions to apply only to a particular project.
+
 ## Development
 
 Run the state tests with:

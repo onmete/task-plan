@@ -9,7 +9,8 @@
     "extensions",
     "test",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "INSTRUCTIONS_APPEND.md"
   ],
   "scripts": {
     "test": "node --experimental-strip-types test/state.test.ts"

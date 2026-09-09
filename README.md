@@ -17,7 +17,7 @@ If the Task Plan overlay flickers in the terminal, open `/settings` and set the 
 
 ## Install from Git
 
-This repository is private. Install it over HTTPS after authenticating to GitHub:
+This repository is public and can be installed over HTTPS without GitHub authentication:
 
 ```bash
 pi install git:github.com/onmete/task-plan

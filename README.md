@@ -15,6 +15,18 @@ It provides:
 
 If the Task Plan overlay flickers in the terminal, open `/settings` and set the TUI mode to `fullscreen`.
 
+## OMP (Oh My Pi) port
+
+`extensions/task-plan-omp/` is a port of the same extension for OMP using the `@oh-my-pi/*` package family. It provides the same tool, commands, `Alt+T` shortcut, overlay, and session-persisted state; the overlay keeps keyboard focus in the composer through OMP's overlay focus-ownership API.
+
+Run it without installing:
+
+```bash
+omp --extension /path/to/task-plan/extensions/task-plan-omp/index.ts
+```
+
+The `omp` manifest field in `package.json` registers it for package-based loading. The OMP port keeps the working plan session-local; it does not read or write durable plan records.
+
 ## Install from Git
 
 This repository is public and can be installed over HTTPS without GitHub authentication:
@@ -68,7 +80,9 @@ Run the state tests with:
 npm test
 ```
 
-The extension imports Pi core packages and `typebox`; Pi supplies those packages when the extension is loaded.
+`npm test` runs both suites: the Pi port tests (Node) and the OMP port tests (`bun test test/state-omp.test.ts`). The OMP port type-checks against the `@oh-my-pi/*` packages pinned in `dependencies`.
+
+The Pi extension imports Pi core packages and `typebox`; Pi supplies those packages when the extension is loaded.
 
 ## Security
 

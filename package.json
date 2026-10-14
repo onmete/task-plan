@@ -12,11 +12,17 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --experimental-strip-types test/state.test.ts"
+    "test": "node --experimental-strip-types test/state.test.ts && bun test test/state-omp.test.ts",
+    "test:omp": "bun test test/state-omp.test.ts"
   },
   "pi": {
     "extensions": [
       "./extensions/task-plan/index.ts"
+    ]
+  },
+  "omp": {
+    "extensions": [
+      "./extensions/task-plan-omp/index.ts"
     ]
   },
   "peerDependencies": {
@@ -25,5 +31,11 @@
     "@earendil-works/pi-coding-agent": "*",
     "@earendil-works/pi-tui": "*",
     "typebox": "*"
+  },
+  "dependencies": {
+    "@oh-my-pi/pi-agent-core": "18.10.4",
+    "@oh-my-pi/pi-ai": "18.10.4",
+    "@oh-my-pi/pi-coding-agent": "18.10.4",
+    "@oh-my-pi/pi-tui": "18.10.4"
   }
 }

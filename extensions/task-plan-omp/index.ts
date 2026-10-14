@@ -241,6 +241,9 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 		name: "task_plan",
 		label: "Task Plan",
 		description: "Maintain the current task plan. Use get, set, or clear; keep it concise and current.",
+		// Top-level like the pi original: extension tools default to "discoverable"
+		// (xd:// device only), which hides task_plan from normal tool calls.
+		loadMode: "essential",
 		parameters: taskPlanParams(),
 		execute: async (_toolCallId, params: ToolParams, _signal, _onUpdate, ctx) => {
 			if (params.action === "clear") {

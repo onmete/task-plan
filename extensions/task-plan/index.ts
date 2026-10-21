@@ -11,6 +11,7 @@ import {
 	STATE_ENTRY,
 	cloneState,
 	emptyState,
+	endsWithUserInput,
 	formatContext,
 	formatTaskPlan,
 	parseState,
@@ -177,7 +178,7 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 			const candidate = message as AgentMessage & { customType?: string };
 			return candidate.customType !== CONTEXT_MESSAGE;
 		});
-		if (!toolIsActive() || !state.semantic) {
+		if (!toolIsActive() || !state.semantic || !endsWithUserInput(messages)) {
 			return messages.length === event.messages.length ? undefined : { messages };
 		}
 		const injected: AgentMessage = {

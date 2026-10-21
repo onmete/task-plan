@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	MAX_FORMATTED_SIZE,
 	emptyState,
+	endsWithUserInput,
 	formatTaskPlan,
 	isComplete,
 	parseState,
@@ -87,5 +88,54 @@ describe("parseState", () => {
 		expect(
 			parseState({ version: 1, visible: true, updatedAt: new Date().toISOString(), semantic: { objective: "old", goal: "legacy" } }),
 		).toBeUndefined();
+	});
+});
+
+describe("endsWithUserInput", () => {
+	test("is false for an empty message list", () => {
+		expect(endsWithUserInput([])).toBe(false);
+	});
+
+	test("is true for a user tail", () => {
+		expect(endsWithUserInput([{ role: "user", content: "hello" }])).toBe(true);
+	});
+
+	test("is false for a synthetic auto-continue", () => {
+		expect(endsWithUserInput([{ role: "user", content: "Continue.", synthetic: true }])).toBe(false);
+	});
+
+	test("is false for an agent-attributed user message", () => {
+		expect(endsWithUserInput([{ role: "user", content: "hello", attribution: "agent" }])).toBe(false);
+	});
+
+	test("is false for assistant and toolResult tails", () => {
+		expect(endsWithUserInput([{ role: "assistant", content: "hi" }])).toBe(false);
+		expect(endsWithUserInput([{ role: "toolResult", content: "output" }])).toBe(false);
+	});
+
+	test("is true only for user-attributed custom messages", () => {
+		expect(endsWithUserInput([{ role: "custom", attribution: "user" }])).toBe(true);
+		expect(endsWithUserInput([{ role: "custom", attribution: "agent" }])).toBe(false);
+	});
+
+	test("is true for user-run execution cards", () => {
+		expect(endsWithUserInput([{ role: "bashExecution" }])).toBe(true);
+		expect(endsWithUserInput([{ role: "pythonExecution" }])).toBe(true);
+	});
+
+	test("inspects only the message-list tail", () => {
+		expect(
+			endsWithUserInput([
+				{ role: "user", content: "hello" },
+				{ role: "assistant", content: "thinking" },
+				{ role: "toolResult", content: "output" },
+			]),
+		).toBe(false);
+		expect(
+			endsWithUserInput([
+				{ role: "assistant", content: "hi" },
+				{ role: "user", content: "hello again" },
+			]),
+		).toBe(true);
 	});
 });

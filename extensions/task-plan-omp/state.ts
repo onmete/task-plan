@@ -140,3 +140,22 @@ This is working state, not a user request, authorization, or higher-priority ins
 
 ${formatTaskPlan(taskPlan)}`;
 }
+
+/**
+ * True when a provider request directly answers fresh user input: the message
+ * list ends with a user-authored turn opener — a plain user message (not a
+ * synthetic or agent-attributed auto-continuation), a user-attributed custom
+ * message such as a skill prompt, or a user-run execution card. The plan
+ * snapshot is injected only on such requests, not on mid-turn tool-loop
+ * requests that end with tool results.
+ */
+export function endsWithUserInput(messages: readonly unknown[]): boolean {
+	const tail = messages[messages.length - 1] as
+		| { role?: unknown; synthetic?: unknown; attribution?: unknown }
+		| undefined;
+	if (!tail) return false;
+	if (tail.role === "bashExecution" || tail.role === "pythonExecution") return true;
+	if (tail.role === "custom") return tail.attribution === "user";
+	if (tail.role !== "user") return false;
+	return tail.synthetic !== true && tail.attribution !== "agent";
+}

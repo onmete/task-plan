@@ -11,6 +11,11 @@ It provides:
 - `Alt+T` to toggle the overlay;
 - session-persisted task-plan state.
 
+When a plan exists, its snapshot is injected into the LLM context only on
+requests that directly answer fresh user input — the first request of each
+turn — not on every mid-turn tool-loop request. The agent can always retrieve
+the current plan via the `task_plan` tool.
+
 ## Terminal display
 
 If the Task Plan overlay flickers in the terminal, open `/settings` and set the TUI mode to `fullscreen`.

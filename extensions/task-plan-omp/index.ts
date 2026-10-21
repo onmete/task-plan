@@ -92,6 +92,19 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 	const toolIsActive = () => pi.getActiveTools().includes("task_plan");
 	const hasPlan = () => state.semantic !== null;
 
+	// Remove the task_plan tool from the model's active set while the
+	// extension is disabled. Re-adding happens only on explicit /task-plan
+	// enablement so a --tools loadout that excludes the tool is never
+	// overridden at session start.
+	const removeTool = async () => {
+		const active = pi.getActiveTools();
+		if (active.includes("task_plan")) await pi.setActiveTools(active.filter((name) => name !== "task_plan"));
+	};
+	const addTool = async () => {
+		const active = pi.getActiveTools();
+		if (!active.includes("task_plan")) await pi.setActiveTools([...active, "task_plan"]);
+	};
+
 	const disposeOverlay = (ctx: ExtensionContext) => {
 		overlayRequest++;
 		overlayPending = false;
@@ -186,13 +199,14 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 			});
 	};
 
-	const reconstruct = (ctx: ExtensionContext) => {
+	const reconstruct = async (ctx: ExtensionContext) => {
 		state = emptyState();
 		for (const entry of ctx.sessionManager.getBranch()) {
 			if (entry.type !== "custom" || entry.customType !== STATE_ENTRY) continue;
 			const restored = parseState(entry.data);
 			if (restored) state = restored;
 		}
+		if (!state.enabled) await removeTool();
 		syncVisibility(ctx);
 		ensureOverlay(ctx);
 	};
@@ -204,7 +218,7 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 	};
 
 	pi.on("before_agent_start", (event) => {
-		if (!toolIsActive()) return;
+		if (!state.enabled || !toolIsActive()) return;
 		return { systemPrompt: [...event.systemPrompt, BEHAVIOR] };
 	});
 
@@ -213,7 +227,7 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 			const candidate = message as AgentMessage & { customType?: string };
 			return candidate.customType !== CONTEXT_MESSAGE;
 		});
-		if (!toolIsActive() || !state.semantic || !endsWithUserInput(messages)) {
+		if (!state.enabled || !toolIsActive() || !state.semantic || !endsWithUserInput(messages)) {
 			return messages.length === event.messages.length ? undefined : { messages };
 		}
 		const injected: CustomMessage = {
@@ -240,6 +254,9 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 		loadMode: "essential",
 		parameters: taskPlanParams(),
 		execute: async (_toolCallId, params: ToolParams, _signal, _onUpdate, ctx) => {
+			if (!state.enabled) {
+				return { content: [{ type: "text", text: "Task Plan is disabled; the plan was not modified. The user can re-enable it with /task-plan." }] };
+			}
 			if (params.action === "clear") {
 				save({ ...state, semantic: null });
 				syncVisibility(ctx);
@@ -269,21 +286,12 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 
 	const handleCommand = async (args: string, ctx: ExtensionContext) => {
 		const command = args.trim().toLowerCase();
-		if (!command) {
-			if (hasPlan()) setVisibility(!state.visible, ctx);
-			else ctx.ui.notify("Task Plan is empty. Ask the agent to initialize it first.", "info");
-			return;
-		}
-		if (command === "show") {
-			if (!hasPlan()) {
-				ctx.ui.notify("Task Plan is empty. Ask the agent to initialize it first.", "info");
-				return;
-			}
-			setVisibility(true, ctx);
-			return;
-		}
-		if (command === "hide") {
-			setVisibility(false, ctx);
+		if (!command || command === "on" || command === "off") {
+			const enabled = command ? command === "on" : !state.enabled;
+			save({ ...state, enabled });
+			if (enabled) await addTool();
+			else await removeTool();
+			ctx.ui.notify(enabled ? "Task Plan enabled." : "Task Plan disabled.", "info");
 			return;
 		}
 		if (command === "reset") {
@@ -292,11 +300,11 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 			syncVisibility(ctx);
 			return;
 		}
-		ctx.ui.notify("Usage: /task-plan [show|hide|reset]", "info");
+		ctx.ui.notify("Usage: /task-plan [on|off|reset]; Alt+T toggles the overlay", "info");
 	};
 
 	pi.registerCommand("task-plan", {
-		description: "Toggle or manage the Task Plan overlay",
+		description: "Enable or disable the Task Plan extension",
 		handler: handleCommand,
 	});
 

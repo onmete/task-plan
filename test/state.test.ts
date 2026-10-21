@@ -40,6 +40,12 @@ assert.equal(parseState({ ...emptyState(), semantic: { ...active, plan: [] } }),
 assert.equal(parseState({ ...emptyState(), semantic: null })?.semantic, null);
 assert.equal(parseState({ ...emptyState(), semantic: { ...active, objective: "x".repeat(501) } }), undefined);
 assert.equal(parseState({ version: 1, visible: true, updatedAt: new Date().toISOString(), semantic: { objective: "old", goal: "legacy" } }), undefined);
+// The enable/disable switch: enabled defaults on, including legacy entries.
+assert.equal(emptyState().enabled, true);
+assert.equal(emptyState(true, false).enabled, false);
+assert.equal(parseState({ ...emptyState(), semantic: active, enabled: false })?.enabled, false);
+assert.equal(parseState({ version: 1, visible: true, updatedAt: new Date().toISOString(), semantic: null })?.enabled, true);
+assert.equal(parseState({ ...emptyState(), enabled: "yes" }), undefined);
 
 const oversized = { ...active, objective: "x".repeat(500), findings: Array(8).fill("y".repeat(500)) };
 assert(formatTaskPlan(oversized).length > MAX_FORMATTED_SIZE);

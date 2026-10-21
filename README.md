@@ -5,16 +5,19 @@ A Pi extension that maintains a concise task plan for the current session.
 It provides:
 
 - the `task_plan` tool for the agent;
-- `/task-plan` to toggle the overlay;
-- `/task-plan show` and `/task-plan hide` to control visibility;
+- `/task-plan` to enable or disable the extension — while disabled, the tool,
+  the behavior prompt, and context injection are all off;
+- `/task-plan on` and `/task-plan off` to set the switch explicitly;
 - `/task-plan reset` to clear the current session's plan;
-- `Alt+T` to toggle the overlay;
+- `Alt+T` to toggle the overlay (the only visibility control);
 - session-persisted task-plan state.
 
-When a plan exists, its snapshot is injected into the LLM context only on
-requests that directly answer fresh user input — the first request of each
-turn — not on every mid-turn tool-loop request. The agent can always retrieve
-the current plan via the `task_plan` tool.
+The enable/disable switch is persisted with the session state, so a resumed
+session keeps it. When a plan exists and the extension is enabled, its
+snapshot is injected into the LLM context only on requests that directly
+answer fresh user input — the first request of each turn — not on every
+mid-turn tool-loop request. The agent can always retrieve the current plan
+via the `task_plan` tool.
 
 ## Terminal display
 

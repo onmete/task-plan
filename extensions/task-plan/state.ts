@@ -21,14 +21,16 @@ export type TaskPlan = {
 export type TaskPlanState = {
 	version: 1;
 	semantic: TaskPlan | null;
+	enabled: boolean;
 	visible: boolean;
 	updatedAt: string;
 };
 
-export function emptyState(visible = true): TaskPlanState {
+export function emptyState(visible = true, enabled = true): TaskPlanState {
 	return {
 		version: 1,
 		semantic: null,
+		enabled,
 		visible,
 		updatedAt: new Date().toISOString(),
 	};
@@ -112,14 +114,17 @@ export function validateTaskPlan(taskPlan: TaskPlan): string | undefined {
 export function parseState(value: unknown): TaskPlanState | undefined {
 	if (!value || typeof value !== "object") return undefined;
 	const raw = value as Record<string, unknown>;
+	// States written before the enable/disable switch lack `enabled`; default it on.
+	const enabled = raw.enabled === undefined ? true : raw.enabled;
 	if (
 		raw.version !== 1 ||
 		typeof raw.visible !== "boolean" ||
+		typeof enabled !== "boolean" ||
 		typeof raw.updatedAt !== "string" ||
 		!Object.prototype.hasOwnProperty.call(raw, "semantic")
 	) return undefined;
 	if (raw.semantic === null) {
-		return { version: 1, semantic: null, visible: raw.visible, updatedAt: raw.updatedAt };
+		return { version: 1, semantic: null, enabled, visible: raw.visible, updatedAt: raw.updatedAt };
 	}
 	if (typeof raw.semantic !== "object") return undefined;
 	const semantic = raw.semantic as Record<string, unknown>;
@@ -130,7 +135,7 @@ export function parseState(value: unknown): TaskPlanState | undefined {
 	if (!objective || !plan || !constraints || !findings) return undefined;
 	const taskPlan = { objective, plan, constraints, findings };
 	if (validateTaskPlan(taskPlan)) return undefined;
-	return { version: 1, semantic: taskPlan, visible: raw.visible, updatedAt: raw.updatedAt };
+	return { version: 1, semantic: taskPlan, enabled, visible: raw.visible, updatedAt: raw.updatedAt };
 }
 
 export function formatContext(taskPlan: TaskPlan): string {

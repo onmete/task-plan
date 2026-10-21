@@ -66,6 +66,13 @@ describe("formatTaskPlan", () => {
 	});
 });
 
+describe("emptyState", () => {
+	test("defaults enabled on", () => {
+		expect(emptyState().enabled).toBe(true);
+		expect(emptyState(true, false).enabled).toBe(false);
+	});
+});
+
 describe("parseState", () => {
 	test("round-trips a valid plan", () => {
 		const restored = parseState({ ...emptyState(), semantic: active });
@@ -82,6 +89,17 @@ describe("parseState", () => {
 
 	test("rejects an over-length objective", () => {
 		expect(parseState({ ...emptyState(), semantic: { ...active, objective: "x".repeat(501) } })).toBeUndefined();
+	});
+	test("round-trips a disabled state", () => {
+		expect(parseState({ ...emptyState(), semantic: active, enabled: false })?.enabled).toBe(false);
+	});
+
+	test("defaults a legacy entry without enabled to enabled", () => {
+		expect(parseState({ version: 1, visible: true, updatedAt: new Date().toISOString(), semantic: null })?.enabled).toBe(true);
+	});
+
+	test("rejects a non-boolean enabled", () => {
+		expect(parseState({ ...emptyState(), enabled: "yes" })).toBeUndefined();
 	});
 
 	test("rejects an unknown version shape", () => {

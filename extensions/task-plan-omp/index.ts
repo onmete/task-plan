@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 import type { AgentMessage, CustomMessage } from "@oh-my-pi/pi-agent-core";
 import type { TypeBuilder } from "@oh-my-pi/omptype/typebox";
-import { type Component, type OverlayHandle, type TUI } from "@oh-my-pi/pi-tui";
+import type { OverlayHandle, TUI } from "@oh-my-pi/pi-tui";
 import { TaskPlanOverlay } from "./overlay.ts";
 import {
 	CONTEXT_MESSAGE,
@@ -30,10 +30,7 @@ substantial new work, encountering a blocker that changes the next step, or esta
 meaningful result. Leave it alone during ordinary clarification.
 Investigate before editing, stay within scope, and report exact verification evidence and remaining
 uncertainty before claiming completion. User instructions and new evidence take precedence over
-stale Task Plan state.
-Do not use the todo tool for session task tracking: the Task Plan is the session's working plan.
-Keep the Task Plan session-local; durable cross-session records live in the Reins documents under
-~/work-plans and are not managed through this tool.`;
+stale Task Plan state.`;
 
 type PlanStepStatus = "pending" | "current" | "done";
 
@@ -88,38 +85,32 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 	let overlayPending = false;
 	let overlayRequest = 0;
 	let overlayTui: TUI | undefined;
-	let overlayEditor: Component | null;
+	let overlayComponent: TaskPlanOverlay | undefined;
 	let focusGuardTimer: ManagedTimerHandle | undefined;
 
 	const toolIsActive = () => pi.getActiveTools().includes("task_plan");
 	const hasPlan = () => state.semantic !== null;
 
-	const disposeOverlay = (ctx?: ExtensionContext) => {
+	const disposeOverlay = (ctx: ExtensionContext) => {
 		overlayRequest++;
 		overlayPending = false;
 		overlayTui = undefined;
 		if (focusGuardTimer) {
-			if (ctx) ctx.clearTimer(focusGuardTimer);
+			ctx.clearTimer(focusGuardTimer);
 			focusGuardTimer = undefined;
 		}
 		const handle = overlayHandle;
 		overlayHandle = undefined;
 		handle?.hide();
+		overlayComponent = undefined;
 	};
 
-	const focusEditor = () => {
-		if (!overlayTui || overlayEditor === null || overlayEditor === undefined) return;
-		if (overlayTui.getFocused() === overlayEditor) return;
-		overlayTui.setFocus(overlayEditor);
-		overlayTui.requestRender();
-	};
-
-	// The TUI restores focus to the topmost visible overlay when a dialog closes
-	// or the overlay is un-hidden. Re-assert editor focus on an interval while
-	// the overlay is mounted so keyboard input always reaches the composer.
+	// The TUI may return focus to the topmost visible overlay after dialogs close
+	// or it is re-shown. Restore composer focus only while this overlay itself has
+	// focus; a temporary editor-slot selector such as /tree must remain interactive.
 	const startFocusGuard = (ctx: ExtensionContext) => {
 		if (focusGuardTimer) return;
-		focusGuardTimer = ctx.setInterval(() => focusEditor(), 500);
+		focusGuardTimer = ctx.setInterval(() => overlayComponent?.restoreEditorFocus(), 500);
 	};
 
 	const save = (next: TaskPlanState) => {
@@ -133,9 +124,9 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 		overlayTui?.requestRender();
 	};
 
-	const syncVisibility = () => {
+	const syncVisibility = (ctx: ExtensionContext) => {
 		if (!hasPlan() || !state.visible) {
-			disposeOverlay();
+			disposeOverlay(ctx);
 			return;
 		}
 		overlayHandle?.setHidden(false);
@@ -149,14 +140,15 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 			.custom<void>(
 				(tui, theme) => {
 					if (request !== overlayRequest) {
-						return new TaskPlanOverlay(theme, () => state.semantic!, undefined);
+						return new TaskPlanOverlay(theme, () => state.semantic!, tui, null);
 					}
 					overlayTui = tui;
-					// Capture the focused component (the composer) before the overlay
-					// mounts; the overlay declares it as an owned focus target and the
-					// extension restores focus right after mounting.
-					overlayEditor = tui.getFocused();
-					return new TaskPlanOverlay(theme, () => state.semantic!, overlayEditor);
+					// Capture the focused composer before the overlay mounts. The
+					// overlay also tracks the containing editor slot so temporary
+					// replacements (for example, /tree) can receive keyboard focus.
+					const component = new TaskPlanOverlay(theme, () => state.semantic!, tui, tui.getFocused());
+					overlayComponent = component;
+					return component;
 				},
 				{
 					overlay: true,
@@ -174,9 +166,9 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 							return;
 						}
 						overlayHandle = handle;
-						syncVisibility();
+						syncVisibility(ctx);
 						startFocusGuard(ctx);
-						focusEditor();
+						overlayComponent?.restoreEditorFocus();
 					},
 				},
 			)
@@ -188,6 +180,7 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 				overlayPending = false;
 				if (!overlayHandle) {
 					overlayTui = undefined;
+					overlayComponent = undefined;
 				}
 			});
 	};
@@ -199,13 +192,13 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 			const restored = parseState(entry.data);
 			if (restored) state = restored;
 		}
-		syncVisibility();
+		syncVisibility(ctx);
 		ensureOverlay(ctx);
 	};
 
 	const setVisibility = (visible: boolean, ctx: ExtensionContext) => {
 		save({ ...state, visible });
-		syncVisibility();
+		syncVisibility(ctx);
 		if (visible) ensureOverlay(ctx);
 	};
 
@@ -248,7 +241,7 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 		execute: async (_toolCallId, params: ToolParams, _signal, _onUpdate, ctx) => {
 			if (params.action === "clear") {
 				save({ ...state, semantic: null });
-				syncVisibility();
+				syncVisibility(ctx);
 				return { content: [{ type: "text", text: renderToolText(state, params.action) }] };
 			}
 
@@ -266,7 +259,7 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 				if (error) throw new Error(error);
 				save({ ...state, semantic: snapshotPlan(taskPlan) });
 				ensureOverlay(ctx);
-				syncVisibility();
+				syncVisibility(ctx);
 			}
 
 			return { content: [{ type: "text", text: renderToolText(state, params.action) }] };
@@ -295,7 +288,7 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 		if (command === "reset") {
 			if (ctx.mode === "tui" && !(await ctx.ui.confirm("Reset Task Plan?", "This clears the current session Task Plan."))) return;
 			save({ ...state, semantic: null });
-			syncVisibility();
+			syncVisibility(ctx);
 			return;
 		}
 		ctx.ui.notify("Usage: /task-plan [show|hide|reset]", "info");

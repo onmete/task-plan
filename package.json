@@ -12,8 +12,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --experimental-strip-types test/state.test.ts && bun test test/state-omp.test.ts",
-    "test:omp": "bun test test/state-omp.test.ts"
+    "test": "node --experimental-strip-types test/state.test.ts && bun test test/state-omp.test.ts test/overlay-omp.test.ts",
+    "test:omp": "bun test test/state-omp.test.ts test/overlay-omp.test.ts"
   },
   "pi": {
     "extensions": [

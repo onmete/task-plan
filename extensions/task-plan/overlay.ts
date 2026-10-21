@@ -33,6 +33,17 @@ export class TaskPlanOverlay implements Component {
 			}
 		};
 
+		const addList = (label: string, items: string[]) => {
+			if (items.length === 0) return;
+			line(this.theme.fg("accent", label));
+			for (const item of items) {
+				const wrapped = wrapTextWithAnsi(item, Math.max(1, contentWidth - 3));
+				for (const [index, segment] of wrapped.entries()) {
+					line(index === 0 ? ` · ${segment}` : `   ${segment}`);
+				}
+			}
+		};
+
 		addField("Objective", taskPlan.objective);
 		addField(
 			"Plan",
@@ -41,8 +52,8 @@ export class TaskPlanOverlay implements Component {
 				return `${marker} ${step.text}`;
 			}),
 		);
-		addField("Constraints", taskPlan.constraints);
-		addField("Findings", taskPlan.findings);
+		addList("Constraints", taskPlan.constraints);
+		addList("Findings", taskPlan.findings);
 		if (taskPlan.plan.every((step) => step.status === "done")) line(this.theme.fg("success", "Completed"));
 		line();
 		line(this.theme.fg("dim", "Alt+T / /task-plan to hide"));

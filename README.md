@@ -17,7 +17,7 @@ If the Task Plan overlay flickers in the terminal, open `/settings` and set the 
 
 ## OMP (Oh My Pi) port
 
-`extensions/task-plan-omp/` is a port of the same extension for OMP using the `@oh-my-pi/*` package family. It provides the same tool, commands, `Alt+T` shortcut, overlay, and session-persisted state; the overlay keeps keyboard focus in the composer through OMP's overlay focus-ownership API.
+`extensions/task-plan-omp/` is a port of the same extension for OMP using the `@oh-my-pi/*` package family. It provides the same tool, commands, `Alt+T` shortcut, overlay, and session-persisted state; its overlay delegates focus to the active editor slot, so temporary selectors such as `/tree` remain interactive, and returns focus to the composer when the overlay regains focus.
 
 Run it without installing:
 
@@ -80,7 +80,7 @@ Run the state tests with:
 npm test
 ```
 
-`npm test` runs both suites: the Pi port tests (Node) and the OMP port tests (`bun test test/state-omp.test.ts`). The OMP port type-checks against the `@oh-my-pi/*` packages pinned in `dependencies`.
+`npm test` runs both suites: the Pi port tests (Node) and the OMP port tests (`bun test test/state-omp.test.ts test/overlay-omp.test.ts`). The OMP port type-checks against the `@oh-my-pi/*` packages pinned in `dependencies`.
 
 The Pi extension imports Pi core packages and `typebox`; Pi supplies those packages when the extension is loaded.
 

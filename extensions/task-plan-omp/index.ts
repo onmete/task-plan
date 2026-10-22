@@ -10,7 +10,6 @@ import {
 	STATE_ENTRY,
 	cloneState,
 	emptyState,
-	endsWithUserInput,
 	formatContext,
 	formatTaskPlan,
 	parseState,
@@ -227,7 +226,7 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 			const candidate = message as AgentMessage & { customType?: string };
 			return candidate.customType !== CONTEXT_MESSAGE;
 		});
-		if (!state.enabled || !toolIsActive() || !state.semantic || !endsWithUserInput(messages)) {
+		if (!state.enabled || !toolIsActive() || !state.semantic) {
 			return messages.length === event.messages.length ? undefined : { messages };
 		}
 		const injected: CustomMessage = {

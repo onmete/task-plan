@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import {
 	MAX_FORMATTED_SIZE,
 	emptyState,
-	endsWithUserInput,
 	formatTaskPlan,
 	isComplete,
 	parseState,
@@ -50,31 +49,5 @@ assert.equal(parseState({ ...emptyState(), enabled: "yes" }), undefined);
 const oversized = { ...active, objective: "x".repeat(500), findings: Array(8).fill("y".repeat(500)) };
 assert(formatTaskPlan(oversized).length > MAX_FORMATTED_SIZE);
 assert.match(validateTaskPlan(oversized) ?? "", /4000-character/);
-
-assert.equal(endsWithUserInput([]), false);
-assert.equal(endsWithUserInput([{ role: "user", content: "hello" }]), true);
-assert.equal(endsWithUserInput([{ role: "user", content: "Continue." , synthetic: true }]), false);
-assert.equal(endsWithUserInput([{ role: "user", content: "hello", attribution: "agent" }]), false);
-assert.equal(endsWithUserInput([{ role: "assistant", content: "hi" }]), false);
-assert.equal(endsWithUserInput([{ role: "toolResult", content: "output" }]), false);
-assert.equal(endsWithUserInput([{ role: "custom", attribution: "user" }]), true);
-assert.equal(endsWithUserInput([{ role: "custom", attribution: "agent" }]), false);
-assert.equal(endsWithUserInput([{ role: "bashExecution" }]), true);
-assert.equal(endsWithUserInput([{ role: "pythonExecution" }]), true);
-assert.equal(
-	endsWithUserInput([
-		{ role: "user", content: "hello" },
-		{ role: "assistant", content: "thinking" },
-		{ role: "toolResult", content: "output" },
-	]),
-	false,
-);
-assert.equal(
-	endsWithUserInput([
-		{ role: "assistant", content: "hi" },
-		{ role: "user", content: "hello again" },
-	]),
-	true,
-);
 
 console.log("Task Plan state tests passed");

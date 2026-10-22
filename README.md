@@ -13,12 +13,7 @@ It provides:
 - session-persisted task-plan state.
 
 The enable/disable switch is persisted with the session state, so a resumed
-session keeps it. When a plan exists and the extension is enabled, its
-snapshot is injected into the LLM context only on requests that directly
-answer fresh user input — the first request of each turn — not on every
-mid-turn tool-loop request. The agent can always retrieve the current plan
-via the `task_plan` tool.
-
+session keeps it.
 ## Terminal display
 
 If the Task Plan overlay flickers in the terminal, open `/settings` and set the TUI mode to `fullscreen`.

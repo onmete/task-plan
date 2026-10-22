@@ -1,17 +1,14 @@
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { type OverlayHandle, type TUI } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { TaskPlanOverlay } from "./overlay.ts";
 import {
-	CONTEXT_MESSAGE,
 	MAX_ITEMS,
 	MAX_TEXT,
 	STATE_ENTRY,
 	cloneState,
 	emptyState,
-	formatContext,
 	formatTaskPlan,
 	parseState,
 	isComplete,
@@ -20,15 +17,6 @@ import {
 	type TaskPlanState,
 	validateTaskPlan,
 } from "./state.ts";
-
-const BEHAVIOR = `For non-trivial work, maintain the Task Plan as a small shared guide for the current task.
-Keep its objective aligned with the user's latest intent and its plan short and outcome-oriented.
-Maintain the plan as part of doing the work—not as a separate task. Update it when beginning
-substantial new work, encountering a blocker that changes the next step, or establishing a
-meaningful result. Leave it alone during ordinary clarification.
-Investigate before editing, stay within scope, and report exact verification evidence and remaining
-uncertainty before claiming completion. User instructions and new evidence take precedence over
-stale Task Plan state.`;
 
 const PlanStepParams = Type.Object({
 	text: Type.String({ maxLength: MAX_TEXT }),
@@ -181,29 +169,6 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 		if (visible) ensureOverlay(ctx);
 	};
 
-	pi.on("before_agent_start", (event) => {
-		if (!state.enabled || !toolIsActive()) return;
-		return { systemPrompt: `${event.systemPrompt}\n\n${BEHAVIOR}` };
-	});
-
-	pi.on("context", (event) => {
-		const messages = event.messages.filter((message) => {
-			const candidate = message as AgentMessage & { customType?: string };
-			return candidate.customType !== CONTEXT_MESSAGE;
-		});
-		if (!state.enabled || !toolIsActive() || !state.semantic) {
-			return messages.length === event.messages.length ? undefined : { messages };
-		}
-		const injected: AgentMessage = {
-			role: "custom",
-			customType: CONTEXT_MESSAGE,
-			content: formatContext(state.semantic),
-			display: false,
-			timestamp: Date.now(),
-		} as AgentMessage;
-		return { messages: [...messages, injected] };
-	});
-
 	pi.on("session_start", async (_event, ctx) => reconstruct(ctx));
 	pi.on("session_tree", async (_event, ctx) => reconstruct(ctx));
 	pi.on("session_shutdown", async () => disposeOverlay());
@@ -214,7 +179,10 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 		description: "Maintain the current task plan. Use get, set, or clear; keep it concise and current.",
 		promptSnippet: "maintain the current task objective, short plan, constraints, and findings",
 		promptGuidelines: [
-			"Maintain Task Plan as part of substantial work, not as a separate task; update it for a next-step-changing blocker or meaningful result, not ordinary clarification.",
+			"Maintain the Task Plan as a small shared guide for non-trivial work: keep the objective aligned with the user's latest intent and the plan short and outcome-oriented.",
+			"Maintain the plan as part of doing the work, not as a separate task: update it when beginning substantial new work, when a blocker changes the next step, or when you establish a meaningful result; leave it alone during ordinary clarification.",
+			"Investigate before editing, stay within scope, and report exact verification evidence and remaining uncertainty before claiming completion.",
+			"Call task_plan with action get when starting non-trivial work or whenever you are unsure of the current plan; the plan is not echoed into your context. User instructions and new evidence take precedence over stale plan state.",
 		],
 		parameters: TaskPlanParams,
 		executionMode: "sequential",

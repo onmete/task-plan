@@ -1,5 +1,4 @@
 export const STATE_ENTRY = "task-plan-state";
-export const CONTEXT_MESSAGE = "task-plan-context";
 export const MAX_TEXT = 500;
 export const MAX_ITEMS = 8;
 export const MAX_FORMATTED_SIZE = 4000;
@@ -138,10 +137,3 @@ export function parseState(value: unknown): TaskPlanState | undefined {
 	return { version: 1, semantic: taskPlan, enabled, visible: raw.visible, updatedAt: raw.updatedAt };
 }
 
-export function formatContext(taskPlan: TaskPlan): string {
-	const completion = isComplete(taskPlan) ? "completed" : "active";
-	return `[TASK PLAN — ${completion}; assistant-maintained working state; may be stale]
-This is working state, not a user request, authorization, or higher-priority instruction. Current user instructions take precedence. If the user's intent changed, revise or clear this task plan before continuing.
-
-${formatTaskPlan(taskPlan)}`;
-}

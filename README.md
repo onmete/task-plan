@@ -5,8 +5,8 @@ A Pi extension that maintains a concise task plan for the current session.
 It provides:
 
 - the `task_plan` tool for the agent;
-- `/task-plan` to enable or disable the extension — while disabled, the tool,
-  the behavior prompt, and context injection are all off;
+- `/task-plan` to enable or disable the extension — while disabled, the tool and
+  its system-prompt guidance are both off;
 - `/task-plan on` and `/task-plan off` to set the switch explicitly;
 - `/task-plan reset` to clear the current session's plan;
 - `Alt+T` to toggle the overlay (the only visibility control);
@@ -14,6 +14,11 @@ It provides:
 
 The enable/disable switch is persisted with the session state, so a resumed
 session keeps it.
+
+The plan is never pushed into the model's context. While the tool is active,
+the system prompt carries short guidance to maintain the plan, and every
+`task_plan` result echoes the current plan; the agent calls `task_plan get`
+when it needs to refresh its view.
 ## Terminal display
 
 If the Task Plan overlay flickers in the terminal, open `/settings` and set the TUI mode to `fullscreen`.

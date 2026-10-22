@@ -1,16 +1,13 @@
 import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
-import type { AgentMessage, CustomMessage } from "@oh-my-pi/pi-agent-core";
 import type { TypeBuilder } from "@oh-my-pi/omptype/typebox";
 import type { OverlayHandle, TUI } from "@oh-my-pi/pi-tui";
 import { TaskPlanOverlay } from "./overlay.ts";
 import {
-	CONTEXT_MESSAGE,
 	MAX_ITEMS,
 	MAX_TEXT,
 	STATE_ENTRY,
 	cloneState,
 	emptyState,
-	formatContext,
 	formatTaskPlan,
 	parseState,
 	isComplete,
@@ -28,6 +25,8 @@ Keep its objective aligned with the user's latest intent and its plan short and 
 Maintain the plan as part of doing the work—not as a separate task. Update it when beginning
 substantial new work, encountering a blocker that changes the next step, or establishing a
 meaningful result. Leave it alone during ordinary clarification.
+The plan is not echoed into your context: call task_plan with action get when starting non-trivial
+work or whenever you are unsure of the current plan.
 Investigate before editing, stay within scope, and report exact verification evidence and remaining
 uncertainty before claiming completion. User instructions and new evidence take precedence over
 stale Task Plan state.`;
@@ -219,24 +218,6 @@ export default function taskPlanExtension(pi: ExtensionAPI): void {
 	pi.on("before_agent_start", (event) => {
 		if (!state.enabled || !toolIsActive()) return;
 		return { systemPrompt: [...event.systemPrompt, BEHAVIOR] };
-	});
-
-	pi.on("context", (event) => {
-		const messages = event.messages.filter((message) => {
-			const candidate = message as AgentMessage & { customType?: string };
-			return candidate.customType !== CONTEXT_MESSAGE;
-		});
-		if (!state.enabled || !toolIsActive() || !state.semantic) {
-			return messages.length === event.messages.length ? undefined : { messages };
-		}
-		const injected: CustomMessage = {
-			role: "custom",
-			customType: CONTEXT_MESSAGE,
-			content: formatContext(state.semantic),
-			display: false,
-			timestamp: Date.now(),
-		};
-		return { messages: [...messages, injected] };
 	});
 
 	pi.on("session_start", async (_event, ctx) => reconstruct(ctx));

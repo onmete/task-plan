@@ -56,7 +56,7 @@ export class TaskPlanOverlay implements Component {
 		addList("Findings", taskPlan.findings);
 		if (taskPlan.plan.every((step) => step.status === "done")) line(this.theme.fg("success", "Completed"));
 		line();
-		line(this.theme.fg("dim", "Alt+T / /task-plan to hide"));
+		line(this.theme.fg("dim", "Alt+T to hide · /task-plan to disable"));
 		lines.push(border(`╰${"─".repeat(innerWidth)}╯`));
 		return lines;
 	}
